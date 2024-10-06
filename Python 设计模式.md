@@ -194,6 +194,8 @@ char6.render("Times New Roman")
 
 ### 行为型模式
 
+> 2024-10-06：行为型模式属于全是重点啊！感觉全部都有用！
+
 #### 责任链模式
 
 #### 命令模式
@@ -395,7 +397,7 @@ if __name__ == "__main__":
 
 
 
-#### 中介者模式
+#### ==中介者模式==
 
 > **中介者模式**（Mediator）是一种行为型设计模式，它用于**将多个对象之间的交互解耦**，从而使得对象之间的通信更加简单和灵活。
 
@@ -429,6 +431,8 @@ if __name__ == "__main__":
 下面是一个简单的中介者模式的 Python 实现，该实现使用一个聊天室作为中介者，多个用户作为同事类：
 
 > ChatRoom 作为中介者，多个 User 作为同事类
+>
+> 2024-10-06：当前我认为，下面这个例子和观察者模式很相似。
 
 ```python
 from typing import List
@@ -485,7 +489,187 @@ if __name__ == '__main__':
 
 #### 备忘录模式
 
-#### 观察者模式
+> **备忘录模式**（Memento）是一种行为型设计模式，它**允许在不暴露对象实现细节的情况下保存和恢复对象的内部状态**。备忘录模式的**核心是备忘录类**，它用于存储对象的状态信息，同时提供给其他类访问状态信息的接口。
+
+备忘录模式包括三个核心角色：
+
+- **Originator（发起人）**：它是需要保存状态的对象。它创建备忘录对象来存储内部状态，并可以使用备忘录对象来恢复其先前的状态。
+- **Memento（备忘录）**：它是存储发起人对象内部状态的对象。备忘录对象由发起人创建，并由发起人决定何时读取备忘录以恢复其先前的状态。
+- **Caretaker（管理者）**：它负责备忘录的安全保管。它只能将备忘录传递给其他对象，不能修改备忘录的内容。
+
+> 根据上述描述，我有以下归纳：
+>
+> 1. 首先需要一个备忘录仓库，其次需要一个备忘录。
+>
+> 2. 个人认为，参考饥荒联机版的 OnSave 和 OnLoad 函数即可。
+> 3. Memento 类和 Originator 类是绑定的，其实可以理解为：一个类需要一个与其对应的序列化类。
+
+在 Python 中，备忘录模式通常使用 Python 的内置 copy 模块和 **dict** 属性来实现。下面是一个简单的备忘录模式的 Python 实现：
+
+```python
+import copy
+
+
+# 发起人类
+class Originator:
+    def __init__(self):
+        self._state = None
+
+    def set_state(self, state):
+        print("设置状态为：", state)
+        self._state = state
+
+    def create_memento(self):
+        print("创建备忘录")
+        # 个人认为，参考饥荒联机版的 OnSave 和 OnLoad 函数即可
+        return Memento(copy.deepcopy(self._state))
+
+    def restore_memento(self, memento):
+        print("恢复备忘录")
+        self._state = memento.get_state()
+
+    def show_state(self):
+        print("当前状态为：", self._state)
+
+
+# 备忘录类
+class Memento:
+    # 该类和 Originator 类是绑定的，其实可以理解为：一个类需要一个与其对应的序列化类
+    def __init__(self, state):
+        self._state = state
+
+    def get_state(self):
+        return self._state
+
+
+# 管理者类
+class Caretaker:
+    def __init__(self):
+        self._mementos = []
+
+    def add_memento(self, memento):
+        self._mementos.append(memento)
+
+    def get_memento(self, index):
+        return self._mementos[index]
+
+
+# 测试
+if __name__ == "__main__":
+    originator = Originator()
+    caretaker = Caretaker()
+
+    originator.set_state("状态1")
+    caretaker.add_memento(originator.create_memento())
+
+    originator.set_state("状态2")
+    caretaker.add_memento(originator.create_memento())
+
+    originator.set_state("状态3")
+    originator.show_state()
+
+    originator.restore_memento(caretaker.get_memento(1))
+    originator.show_state()
+
+    originator.restore_memento(caretaker.get_memento(0))
+    originator.show_state()
+
+```
+
+代码解释：
+
+- 以上代码中，我们首先定义了发起人类 Originator，其中包含一个状态变量  _state，以及用于设置状态、创建备忘录和恢复备忘录的方法。在 create_memento 方法中，我们通过 copy.deepcopy  方法创建了一个状态信息的备忘录对象。在 restore_memento 方法中，我们通过备忘录对象的 get_state  方法获取备忘录中的状态信息，然后将其恢复到当前的状态变量中。在 show_state 方法中，我们打印出当前状态的值。
+- 接着，我们定义了备忘录类 Memento，它包含了一个状态信息的属性 _state，以及一个用于获取该属性的方法 get_state。
+- 最后，我们定义了管理者类 Caretaker，它包含了一个备忘录列表 _mementos，以及用于添加备忘录和获取备忘录的方法。
+
+#### ==观察者模式==
+
+> **观察者模式**（Observer）是一种软件设计模式，它定义了对象之间的一种一对多的依赖关系，使得当一个对象的状态发生改变时，所有依赖它的对象都会收到通知并自动更新。这个模式也被称为**发布/订阅模式**（Publish/Subscribe），**事件模型**（Event Model）或**消息机制**（Message Pattern）。
+
+实现思路：
+
+- 在观察者模式中，有两种类型的对象：**观察者**和**主题（Subject）**。
+- **主题是被观察的对象**，它维护了一个观察者列表，用于记录所有依赖于它的观察者。
+- 当主题状态发生变化时，它会自动通知所有观察者，让它们能够及时更新自己的状态。
+- **观察者是依赖于主题的对象**，当主题状态发生变化时，它们会收到通知并根据新状态更新自己的状态。
+
+优缺点：
+
+- 观察者模式的**优点**是它实现了**松耦合**（loose  coupling）的设计，因为主题和观察者之间没有直接的依赖关系。这使得程序更加灵活，能够更容易地扩展和修改。观察者模式也使得对象能够以可预测的方式进行通信，因为主题和观察者都遵循了同一种接口。同时，观察者模式也可以提高程序的可维护性，因为它将功能分散到了不同的对象中，使得每个对象都具有清晰的职责。
+- 观察者模式的**缺点**是，它可能会导致过多的细节传递，因为主题在通知观察者时必须传递详细信息。这**可能会导致性能问题或安全问题**，因为观察者可以访问到主题的私有信息。同时，观察者模式也**可能导致循环依赖的问题**，因为主题和观察者之间可能会相互依赖。
+
+以下是观察者模式的 Python 实现：
+
+```python
+class Subject:
+    def __init__(self):
+        self._observers = []
+
+    def attach(self, observer):
+        if observer not in self._observers:
+            self._observers.append(observer)
+
+    def detach(self, observer):
+        try:
+            self._observers.remove(observer)
+        except ValueError:
+            pass
+
+    def notify(self, modifier=None):
+        for observer in self._observers:
+            if modifier != observer:
+                observer.update(self)
+
+
+class Observer:
+    def update(self, subject):
+        pass
+
+
+class ConcreteSubject(Subject):
+    def __init__(self):
+        super().__init__()
+        self._state = None
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, state):
+        self._state = state
+        self.notify()
+
+
+class ConcreteObserver(Observer):
+    def __init__(self, name):
+        self._name = name
+
+    def update(self, subject):
+        print(f'{self._name} received an update: {subject.state}')
+
+
+subject = ConcreteSubject()
+observer1 = ConcreteObserver('Observer 1')
+observer2 = ConcreteObserver('Observer 2')
+subject.attach(observer1)
+subject.attach(observer2)
+
+subject.state = 123
+subject.detach(observer1)
+
+subject.state = 456
+
+```
+
+代码讲解：
+
+- 在上面的实现中，Subject 是主题类，Observer 是观察者类，ConcreteSubject 是具体主题类，ConcreteObserver 是具体观察者类。
+- 当主题状态发生变化时，它会通过 notify 方法通知所有观察者。
+- 观察者可以通过 update 方法接收到主题的状态变化，并进行相应的处理。
+- 在上面的例子中，我们创建了一个 ConcreteSubject 对象，然后创建了两个 ConcreteObserver 对象，并将它们添加到主题的观察者列表中。
+- 接着，我们改变了主题的状态两次，第一次时两个观察者都收到了通知，第二次时只有一个观察者收到了通知。
+- 最后，我们从主题的观察者列表中移除了一个观察者，并再次改变了主题的状态，这时只有一个观察者收到了通知。
 
 #### 状态模式
 
