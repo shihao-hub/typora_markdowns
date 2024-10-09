@@ -2,6 +2,11 @@
 
 链接：https://www.cnblogs.com/liugp/p/17134320.html
 
+随笔：
+
+1. 本文的这些设计模式相关内容适合入门，但是我认为漏了个最关键的点：什么场景下使用？这个非常关键。
+2. 
+
 ## 一、概述
 
 > `设计模式（Design Pattern）`是一套被广泛接受的、可重复使用的软件设计**解决方案**。它们是在软件开发过程中对常见问题的反复实践和总结得出的经验和思想的表现。
@@ -417,7 +422,7 @@ if __name__ == "__main__":
 
 - **抽象同事类（Colleague）**：定义了各个同事对象的接口，包含一个指向中介者对象的引用，以便与中介者进行通信。
 
-  > Q：
+  > Q：这个抽象同事类是为何呢？Python 的多重继承和 Java 的单继承 + 多接口是否能相互兼容呢？如果是 Java 的多接口就好理解多了。某个类实现这个同事接口即可。
 
 - **具体同事类（ConcreteColleague）**：实现了抽象同事类的接口，负责实现各自的行为，并且需要和中介者对象进行通信。
 
@@ -601,27 +606,39 @@ if __name__ == "__main__":
 以下是观察者模式的 Python 实现：
 
 ```python
-class Subject:
+import abc
+
+
+# 2024-10-08
+# Q: 继承 abc.ABC 的类算是接口吧？还是类似 Java 的抽象类，支持默认函数？
+# A: 运行的时候没发现什么问题，得去看看代码规范建议不建议这样做。
+
+class Subject(abc.ABC):
     def __init__(self):
-        self._observers = []
+        self._observers = set()
 
     def attach(self, observer):
-        if observer not in self._observers:
-            self._observers.append(observer)
+        """ 注册观察者（观察者订阅） """
+        self._observers.add(observer)
 
     def detach(self, observer):
-        try:
+        """ 注销观察者（观察者取消订阅） """
+        if observer in self._observers:
             self._observers.remove(observer)
-        except ValueError:
-            pass
 
     def notify(self, modifier=None):
+        """ 广播 """
         for observer in self._observers:
+            # 中介者模式的样例代码和观察者模式区别并不大，这是为何呢？是不是中介者模式的样例不够鲜明。
             if modifier != observer:
+                # 观察者模式的缺点是，
+                # 它可能会导致过多的细节传递，因为主题在通知观察者时必须传递详细信息。
+                # 这可能会导致性能问题或安全问题，因为观察者可以访问到主题的私有信息。
                 observer.update(self)
 
 
-class Observer:
+class Observer(abc.ABC):
+    @abc.abstractmethod
     def update(self, subject):
         pass
 
@@ -637,6 +654,7 @@ class ConcreteSubject(Subject):
 
     @state.setter
     def state(self, state):
+        # 该被观察者的状态发生变化时，通知所有订阅方。订阅方会调用它自己实现的 update 函数。
         self._state = state
         self.notify()
 
@@ -649,16 +667,22 @@ class ConcreteObserver(Observer):
         print(f'{self._name} received an update: {subject.state}')
 
 
-subject = ConcreteSubject()
-observer1 = ConcreteObserver('Observer 1')
-observer2 = ConcreteObserver('Observer 2')
-subject.attach(observer1)
-subject.attach(observer2)
+def unittest():
+    # 测试驱动开发？这类知识，找到个稳定的工作再说吧。目前最主要的还是工程实践也就是项目经验。（2024-10-08）
+    subject = ConcreteSubject()
+    observer1 = ConcreteObserver('Observer 1')
+    observer2 = ConcreteObserver('Observer 2')
+    subject.attach(observer1)
+    subject.attach(observer2)
 
-subject.state = 123
-subject.detach(observer1)
+    subject.state = 123
+    subject.detach(observer1)
 
-subject.state = 456
+    subject.state = 456
+
+
+if __name__ == '__main__':
+    unittest()
 
 ```
 
@@ -677,5 +701,131 @@ subject.state = 456
 
 #### 模板方法模式
 
-#### 访问者模式
+#### ==访问者模式==
+
+> **访问者模式**（Visitor）是一种行为型设计模式，它**可以将算法与其所作用的对象分离开来**。这种模式允许你在不改变现有对象结构的情况下向对象结构中添加新的行为。
+
+实现思路：
+
+- 访问者模式的核心思想是：将算法封装到访问者对象中，然后将访问者对象传递给对象结构中的元素，以便这些元素可以调用访问者对象中的算法。
+- 访问者对象可以通过访问元素中的数据和操作来实现算法，从而避免了对元素结构的直接访问。
+
+访问者模式通常由以下几个角色组成：
+
+- **访问者（Visitor）**：定义了用于访问元素的方法，这些方法通常以不同的重载形式出现，以便针对不同类型的元素采取不同的行为。
+
+  > 各种与某个元素绑定的方法被封装到了 Visitor 里，元素类中的 accept 函数的第一个参数是 visitor 实例，然后调用 visitor 中与当前元素绑定的方法
+
+- **具体访问者（ConcreteVisitor）**：实现了访问者接口，提供了算法的具体实现。
+
+- **元素（Element）**：定义了用于接受访问者的方法，这些方法通常以 accept() 的形式出现，以便元素可以将自己作为参数传递给访问者对象。
+
+- **具体元素（ConcreteElement）**：实现了元素接口，提供了具体的数据和操作，同时也提供了接受访问者的方法。
+
+- **对象结构（Object Structure）**：定义了元素的集合，可以提供一些方法以便访问者能够遍历整个集合。
+
+  > 各种元素注册进 object structure 中，其中的 accept 函数将实现：遍历所有元素并调用该元素对应的 accept 函数。
+
+访问者模式的优缺点包括：
+
+- 可以将算法与其所作用的对象分离开来，避免了对元素结构的直接访问。
+  在访问者中可以实现对元素数据和操作的访问和处理，从而可以方便地扩展新的操作和处理逻辑。
+
+- 可以方便地实现元素结构的复杂算法，而不需要修改元素结构本身。
+
+  > Object Structure、Element 类的结构不需要变化，逻辑需要变动的时候统一改动 Visitor 即可？
+
+- 访问者模式的**缺点**是，它可能会导致访问者对象的复杂性增加。此外，它也可能会导致元素结构的扩展性变得比较差，因为每当添加一个新的元素类型时，都需要修改所有的访问者对象。
+
+  > Q: 什么叫需要修改所有的访问者对象？为什么需要修改对象？这也没有继承吧？源代码也不用动吧？
+
+下面是一个简单的访问者模式的 Python 实现：
+
+```python
+from abc import ABC, abstractmethod
+
+# 抽象元素类
+class Element(ABC):
+    @abstractmethod
+    def accept(self, visitor):
+        pass
+
+# 具体元素类A
+class ElementA(Element):
+    def __init__(self, value):
+        self.value = value
+
+    def accept(self, visitor):
+        visitor.visit_element_a(self)
+
+# 具体元素类B
+class ElementB(Element):
+    def __init__(self, value):
+        self.value = value
+
+    def accept(self, visitor):
+        visitor.visit_element_b(self)
+
+# 抽象访问者类
+class Visitor(ABC):
+    @abstractmethod
+    def visit_element_a(self, element_a):
+        pass
+
+    @abstractmethod
+    def visit_element_b(self, element_b):
+        pass
+
+# 具体访问者类A
+class VisitorA(Visitor):
+    def visit_element_a(self, element_a):
+        print("VisitorA is visiting ElementA, value = ", element_a.value)
+
+    def visit_element_b(self, element_b):
+        print("VisitorA is visiting ElementB, value = ", element_b.value)
+
+# 具体访问者类B
+class VisitorB(Visitor):
+    def visit_element_a(self, element_a):
+        print("VisitorB is visiting ElementA, value = ", element_a.value)
+
+    def visit_element_b(self, element_b):
+        print("VisitorB is visiting ElementB, value = ", element_b.value)
+
+# 对象结构类
+class ObjectStructure:
+    def __init__(self):
+        self.elements = []
+
+    def attach(self, element):
+        self.elements.append(element)
+
+    def detach(self, element):
+        self.elements.remove(element)
+
+    def accept(self, visitor):
+        for element in self.elements:
+            element.accept(visitor)
+
+# 测试
+if __name__ == "__main__":
+    object_structure = ObjectStructure()
+    element_a = ElementA("A")
+    element_b = ElementB("B")
+    object_structure.attach(element_a)
+    object_structure.attach(element_b)
+    visitor_a = VisitorA()
+    visitor_b = VisitorB()
+    object_structure.accept(visitor_a)
+    object_structure.accept(visitor_b)
+
+
+```
+
+代码解释：
+
+- 以上代码中，我们首先定义了抽象元素类 Element，其中定义了一个 accept 方法，该方法**接受一个访问者对象作为参数**，并调用访问者对象的访问方法。然后，我们定义了两个具体元素类 ElementA 和 ElementB，它们分别实现了 accept 方法。
+- 接着，我们定义了抽象访问者类 Visitor，其中定义了两个访问方法 visit_element_a 和 visit_element_b，这两个方法分别用于访问具体的元素类。然后，我们定义了两个具体访问者类 VisitorA 和 VisitorB，它们分别实现了 visit_element_a 和 visit_element_b 方法。
+- 最后，我们定义了一个对象结构类 ObjectStructure，它包含了多个元素对象，并提供了 attach、detach 和 accept 方法，其中 accept 方法接受一个访问者对象作为参数，并调用元素对象的 accept 方法。在测试代码中，我们创建了一个对象结构，向其中添加了两个具体元素对象，并创建了两个具体访问者对象。然后，我们先使用 VisitorA 对象访问对象结构中的元素对象，再使用 VisitorB 对象访问对象结构中的元素对象。
+- 这样，访问者模式的基本结构就完成了。我们可以通过定义不同的具体访问者类来实现不同的操作，而不需要修改元素类。这样，访问者模式可以提高程序的灵活性和可扩展性。
 
