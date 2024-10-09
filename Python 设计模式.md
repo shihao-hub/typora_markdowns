@@ -203,7 +203,213 @@ char6.render("Times New Roman")
 
 #### 责任链模式
 
+> **职责链模式**（Chain of Responsibility）是一种行为型设计模式，它**通过将请求的发送者和接收者解耦**，从而使多个对象都有机会处理这个请求。
+
+实现思路：
+
+- 在职责链模式中，我们定义一系列的处理器对象，每个处理器对象都包含一个对下一个处理器对象的引用。
+
+- 当请求从客户端发送到处理器对象时，第一个处理器对象会尝试处理请求，如果它不能处理请求，则将请求传递给下一个处理器对象，以此类推，直到请求被处理或者所有的处理器对象都不能处理请求。
+
+  > 此处应该可以类别 Django 接收到请求的过程吧？process_request、process_view 等。
+  >
+  > Django 的中间层应该也算吧？
+  >
+  > 责任链模式：HandlerA、HandlerB、HandlerC 等。
+
+优缺点：
+
+- 职责链模式的**优点**是它可以**灵活地配置处理器对象的顺序和组合**，从而满足不同的处理需求。它还可以**将请求的发送者和接收者解耦**，从而提高系统的灵活性和可扩展性。
+- 职责链模式的**缺点**是如果**处理器对象过多或者处理器对象之间的关系过于复杂**，可能会导致系统的维护难度增加。
+
+职责链模式通常涉及以下角色：
+
+- **处理器接口（Handler Interface）**：定义处理器对象的接口，包含处理请求的方法和对下一个处理器对象的引用。
+- **具体处理器类（Concrete Handlers）**：实现处理器接口，处理请求或将请求传递给下一个处理器对象。
+- **客户端（Client）**：创建处理器对象的链，将请求发送给链的第一个处理器对象。
+
+下面是一个简单的 Python 实现示例：
+
+1、定义处理器接口：
+
+```python
+class Handler:
+    def set_next(self, handler):
+        pass
+
+    def handle(self, request):
+        pass
+
+```
+
+2、实现具体处理器类：
+
+```python
+class AbstractHandler(Handler):
+    def __init__(self):
+        self._next_handler = None
+
+    def set_next(self, handler):
+        self._next_handler = handler
+        return handler
+
+    def handle(self, request):
+        if self._next_handler:
+            return self._next_handler.handle(request)
+        return None
+
+class ConcreteHandler1(AbstractHandler):
+    def handle(self, request):
+        if request == "request1":
+            return "Handled by ConcreteHandler1"
+        else:
+            return super().handle(request)
+
+class ConcreteHandler2(AbstractHandler):
+    def handle(self, request):
+        if request == "request2":
+            return "Handled by ConcreteHandler2"
+        else:
+            return super().handle(request)
+
+class ConcreteHandler3(AbstractHandler):
+    def handle(self, request):
+        if request == "request3":
+            return "Handled by ConcreteHandler3"
+        else:
+            return super().handle(request)
+
+```
+
+3、客户端创建处理器对象的链：
+
+```python
+handler1 = ConcreteHandler1()
+handler2 = ConcreteHandler2()
+handler3 = ConcreteHandler3()
+
+handler1.set_next(handler2).set_next(handler3)
+
+# 发送请求
+requests = ["request1", "request2", "request3", "request4"]
+for request in requests:
+    response = handler1.handle(request)
+    if response:
+        print(response)
+    else:
+        print(f"{request} was not handled")
+
+
+```
+
+代码讲解：
+
+- 上面的示例中，我们定义了一个处理器接口 Handler，其中包含 set_next 和 handle 方法。
+- 我们还定义了一个抽象处理器类 AbstractHandler，它实现了 set_next 和 handle 方法，其中 handle 方法调用了下一个处理器对象的 handle 方法。
+- 我们还实现了三个具体的处理器类 ConcreteHandler1、ConcreteHandler2 和 ConcreteHandler3，它们分别实现了自己的 handle 方法。
+- 客户端创建处理器对象的链，将处理器对象按照需要连接起来，然后将请求发送给链的第一个处理器对象，处理器对象将请求进行处理或者将请求传递给下一个处理器对象，直到请求被处理或者没有处理器对象能够处理请求。
+- 在这个例子中，当请求为 "request1"、"request2"、"request3" 时，请求会被相应的处理器对象处理；当请求为 "request4" 时，没有处理器对象能够处理该请求，因此该请求未被处理。
+
+总的来说，职责链模式可以**使多个对象都有机会处理请求**，并且可以灵活地配置处理器对象的顺序和组合，从而提高系统的灵活性和可扩展性。
+
 #### 命令模式
+
+> **命令模式**（Command）是一种行为型设计模式，它**将请求封装成一个对象**，从而使您可以**将不同的请求与其请求的接收者分开**。这种模式的目的是通过将请求**发送者和请求接收者解耦**来实现请求的发送、执行和撤销等操作。
+>
+> 注意，将请求封装成一个对象，那么这个对象的构造函数显然至少有个参数代表该请求的接收者，可以理解为这本就应该是请求的一个属性（毕竟请求总归需要接收者）
+
+实现思路：
+
+- 在命令模式中，我们定义一个 Command 接口，该接口包含一个 execute 方法，用于执行命令。
+- 我们还定义了一个 Invoker 类，它用于发送命令，可以接受一个 Command 对象，并在需要时调用该对象的 execute 方法。
+- 我们还定义了一个 Receiver 类，它实际执行命令，包含一些特定于应用程序的业务逻辑。
+
+命令模式涉及以下角色：
+
+- **Command 接口**：定义了一个执行命令的方法 execute。
+- **具体命令类（Concrete Command）**：实现了 Command 接口，实现 execute 方法，包含一个接收者对象，执行具体的业务逻辑。
+- **Invoker 类**：负责发送命令，它包含一个 Command 对象，可以在需要时调用该对象的 execute 方法。
+- **Receiver 类**：包含一些特定于应用程序的业务逻辑，实际执行命令。
+
+下面是一个简单的 Python 实现示例：
+
+```python
+from abc import ABC, abstractmethod
+
+# Command 接口
+class Command(ABC):
+    @abstractmethod
+    def execute(self):
+        pass
+
+# 具体命令类
+class LightOnCommand(Command):
+    def __init__(self, light):
+        self.light = light
+
+    def execute(self):
+        self.light.turn_on()
+
+# Invoker 类
+class LightOffCommand(Command):
+    def __init__(self, light):
+        self.light = light
+
+    def execute(self):
+        self.light.turn_off()
+
+# Receiver 类
+class RemoteControl:
+    def __init__(self):
+        self.commands = []
+
+    def add_command(self, command):
+        self.commands.append(command)
+
+    def execute_commands(self):
+        for command in self.commands:
+            command.execute()
+
+class Light:
+    def turn_on(self):
+        print("The light is on")
+
+    def turn_off(self):
+        print("The light is off")
+
+
+light = Light()
+
+remote_control = RemoteControl()
+remote_control.add_command(LightOnCommand(light))
+remote_control.add_command(LightOffCommand(light))
+
+remote_control.execute_commands()
+
+         
+```
+
+代码解释：
+
+- 在这个例子中，我们首先定义了一个 Command 接口，该接口包含 execute 方法。然后，我们定义了两个具体命令类 LightOnCommand 和 LightOffCommand，它们实现了 Command 接口，并包含一个接收者对象 Light，实现了执行具体的业务逻辑。
+- 我们还定义了一个 Invoker 类 RemoteControl，它包含一个 Command 对象的列表，并提供了一个 add_command 方法用于添加 Command 对象。execute_commands 方法用于在需要时调用 Command 对象的 execute 方法。
+- 最后，我们定义了一个 Receiver 类 Light，它包含一些特定于应用程序的业务逻辑，实际执行命令。
+- 在客户端代码中，我们创建了一个 Light 对象和一个 RemoteControl 对象。我们将 LightOnCommand 和 LightOffCommand 对象添加到 RemoteControl 对象的命令列表中，然后调用 execute_commands 方法来执行这些命令。
+
+当我们执行这个程序时，它将输出以下内容：
+
+```python
+The light is on
+The light is off
+```
+
+- 这是因为我们创建了一个 Light 对象，然后使用 LightOnCommand 和 LightOffCommand 对象分别打开和关闭该对象。通过将命令对象和命令的接收者对象分开，我们可以轻松地添加、删除和替换命令，同时也使得程序更加灵活和可扩展。
+
+  > Light 是命令（请求）的接收者，Command 就是请求的发送者吗？还是说发送者是 RemoteControl？
+
+总的来说，命令模式提供了一种通过将请求封装成对象来实现请求的发送、执行和撤销的方法，从而使得命令对象和命令接收者对象解耦，提高程序的灵活性和可扩展性。
+
+> 《Header First》这本书里的命名模式的样例比这里的详细，但是罢了。简单过一遍而已，设计模式在实战中才能巩固，虽然我觉得目前很难有机会在实战中练习，多做项目应该好点。（2024-10-09）
 
 #### ==解释器模式==
 
@@ -403,6 +609,10 @@ if __name__ == "__main__":
 
 
 #### ==中介者模式==
+
+【Questions】
+
+1. 该设计模式的使用场景是什么？个人认为可能和 Java 这种纯面向对象语言关系较大。
 
 > **中介者模式**（Mediator）是一种行为型设计模式，它用于**将多个对象之间的交互解耦**，从而使得对象之间的通信更加简单和灵活。
 
